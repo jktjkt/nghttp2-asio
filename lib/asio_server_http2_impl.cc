@@ -45,11 +45,12 @@ http2_impl::http2_impl()
 
 boost::system::error_code http2_impl::listen_and_serve(
     boost::system::error_code &ec, boost::asio::ssl::context *tls_context,
-    const std::string &address, const std::string &port, bool asynchronous) {
+    const boost::optional<std::string> &address, const boost::optional<std::string> &port,
+    const boost::optional<std::string> socket_path, bool asynchronous) {
   server_.reset(
       new server(num_threads_, tls_handshake_timeout_, read_timeout_));
-  return server_->listen_and_serve(ec, tls_context, address, port, backlog_,
-                                   mux_, asynchronous);
+  return server_->listen_and_serve(ec, tls_context, address, port, socket_path,
+                                   backlog_, mux_, asynchronous);
 }
 
 void http2_impl::num_threads(size_t num_threads) { num_threads_ = num_threads; }

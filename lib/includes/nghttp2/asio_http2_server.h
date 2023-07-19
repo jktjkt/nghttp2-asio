@@ -159,6 +159,13 @@ public:
                    const std::string &address, const std::string &port,
                    bool asynchronous = false);
 
+  // Starts listening connection on given Unix socket and serve incoming
+  // requests  For |asynchronous| parameter, see cleartext version
+  // |listen_and_serve|.
+  boost::system::error_code listen_and_serve(boost::system::error_code &ec,
+                                             const std::string &socket_path,
+                                             bool asynchronous = false);
+
   // Registers request handler |cb| with path pattern |pattern|.  This
   // function will fail and returns false if same pattern has been
   // already registered or |pattern| is empty string.  Otherwise

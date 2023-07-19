@@ -44,6 +44,7 @@
 #include <memory>
 
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 #include <nghttp2/asio_http2_server.h>
 
@@ -70,7 +71,8 @@ public:
   boost::system::error_code
   listen_and_serve(boost::system::error_code &ec,
                    boost::asio::ssl::context *tls_context,
-                   const std::string &address, const std::string &port,
+                   const boost::optional<std::string> &address, const boost::optional<std::string> &port,
+                   const boost::optional<std::string> &socket_path,
                    int backlog, serve_mux &mux, bool asynchronous = false);
   void join();
   void stop();
@@ -88,11 +90,17 @@ private:
   /// Same as above but with tls_context
   void start_accept(boost::asio::ssl::context &tls_context,
                     tcp::acceptor &acceptor, serve_mux &mux);
+  /// Same as above, but for a Unix socket
+  void start_accept(boost::asio::local::stream_protocol::acceptor &acceptor, serve_mux &mux);
 
   /// Resolves address and bind socket to the resolved addresses.
   boost::system::error_code bind_and_listen(boost::system::error_code &ec,
                                             const std::string &address,
                                             const std::string &port,
+                                            int backlog);
+  /// Bind to the Unix socket
+  boost::system::error_code bind_and_listen(boost::system::error_code &ec,
+                                            const std::string &socket_path,
                                             int backlog);
 
   /// The pool of io_service objects used to perform asynchronous
@@ -101,6 +109,7 @@ private:
 
   /// Acceptor used to listen for incoming connections.
   std::vector<tcp::acceptor> acceptors_;
+  boost::optional<boost::asio::local::stream_protocol::acceptor> uds_acceptor_;
 
   std::unique_ptr<boost::asio::ssl::context> ssl_ctx_;
 

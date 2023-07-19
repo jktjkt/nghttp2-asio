@@ -88,9 +88,15 @@ public:
   void start() {
     boost::system::error_code ec;
 
-    handler_ = std::make_shared<http2_handler>(
-        GET_IO_SERVICE(socket_), socket_.lowest_layer().remote_endpoint(ec),
-        [this]() { do_write(); }, mux_);
+    if constexpr (std::is_same<typename socket_type::lowest_layer_type::endpoint_type, boost::asio::ip::tcp::endpoint>::value) {
+        handler_ = std::make_shared<http2_handler>(
+            GET_IO_SERVICE(socket_), socket_.lowest_layer().remote_endpoint(ec),
+            [this]() { do_write(); }, mux_);
+    } else {
+        handler_ = std::make_shared<http2_handler>(
+            GET_IO_SERVICE(socket_), boost::asio::ip::tcp::endpoint{},
+            [this]() { do_write(); }, mux_);
+    }
     if (handler_->start() != 0) {
       stop();
       return;

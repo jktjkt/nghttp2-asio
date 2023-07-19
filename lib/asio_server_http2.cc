@@ -56,13 +56,19 @@ boost::system::error_code http2::listen_and_serve(boost::system::error_code &ec,
                                                   const std::string &address,
                                                   const std::string &port,
                                                   bool asynchronous) {
-  return impl_->listen_and_serve(ec, nullptr, address, port, asynchronous);
+  return impl_->listen_and_serve(ec, nullptr, address, port, boost::none, asynchronous);
 }
 
 boost::system::error_code http2::listen_and_serve(
     boost::system::error_code &ec, boost::asio::ssl::context &tls_context,
     const std::string &address, const std::string &port, bool asynchronous) {
-  return impl_->listen_and_serve(ec, &tls_context, address, port, asynchronous);
+  return impl_->listen_and_serve(ec, &tls_context, address, port, boost::none, asynchronous);
+}
+
+boost::system::error_code http2::listen_and_serve(boost::system::error_code &ec,
+                                                  const std::string &socket_path,
+                                                  bool asynchronous) {
+  return impl_->listen_and_serve(ec, nullptr, boost::none, boost::none, socket_path, asynchronous);
 }
 
 void http2::num_threads(size_t num_threads) { impl_->num_threads(num_threads); }

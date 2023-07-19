@@ -28,6 +28,7 @@
 #include "nghttp2_config.h"
 
 #include <nghttp2/asio_http2_server.h>
+#include <boost/optional.hpp>
 
 #include "asio_server_serve_mux.h"
 
@@ -44,7 +45,8 @@ public:
   http2_impl();
   boost::system::error_code listen_and_serve(
       boost::system::error_code &ec, boost::asio::ssl::context *tls_context,
-      const std::string &address, const std::string &port, bool asynchronous);
+      const boost::optional<std::string> &address, const boost::optional<std::string> &port,
+      const boost::optional<std::string> socket_path, bool asynchronous);
   void num_threads(size_t num_threads);
   void backlog(int backlog);
   void tls_handshake_timeout(const boost::posix_time::time_duration &t);

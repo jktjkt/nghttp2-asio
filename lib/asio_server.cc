@@ -44,6 +44,8 @@ namespace nghttp2 {
 namespace asio_http2 {
 namespace server {
 
+using boost::asio::local::stream_protocol;
+
 server::server(std::size_t io_service_pool_size,
                const boost::posix_time::time_duration &tls_handshake_timeout,
                const boost::posix_time::time_duration &read_timeout)
@@ -54,12 +56,20 @@ server::server(std::size_t io_service_pool_size,
 boost::system::error_code
 server::listen_and_serve(boost::system::error_code &ec,
                          boost::asio::ssl::context *tls_context,
-                         const std::string &address, const std::string &port,
+                         const boost::optional<std::string> &address, const boost::optional<std::string> &port,
+                         const boost::optional<std::string> &socket_path,
                          int backlog, serve_mux &mux, bool asynchronous) {
   ec.clear();
 
-  if (bind_and_listen(ec, address, port, backlog)) {
-    return ec;
+  if (address && port) {
+      if (bind_and_listen(ec, *address, *port, backlog)) {
+        return ec;
+      }
+  }
+  if (socket_path) {
+      if (bind_and_listen(ec, *socket_path, backlog)) {
+        return ec;
+      }
   }
 
   for (auto &acceptor : acceptors_) {
@@ -68,6 +78,9 @@ server::listen_and_serve(boost::system::error_code &ec,
     } else {
       start_accept(acceptor, mux);
     }
+  }
+  if (uds_acceptor_) {
+    start_accept(*uds_acceptor_, mux);
   }
 
   io_service_pool_.run(asynchronous);
@@ -120,6 +133,15 @@ boost::system::error_code server::bind_and_listen(boost::system::error_code &ec,
   ec.clear();
 
   return ec;
+}
+
+boost::system::error_code server::bind_and_listen(boost::system::error_code &ec,
+                                                  const std::string &socket_path,
+                                                  int backlog) {
+    uds_acceptor_ = stream_protocol::acceptor(io_service_pool_.get_io_service(),
+            stream_protocol::endpoint(socket_path));
+    uds_acceptor_->listen(backlog == -1 ? boost::asio::socket_base::max_connections : backlog, ec);
+    return ec;
 }
 
 void server::start_accept(boost::asio::ssl::context &tls_context,
@@ -186,9 +208,36 @@ void server::start_accept(tcp::acceptor &acceptor, serve_mux &mux) {
       });
 }
 
+void server::start_accept(stream_protocol::acceptor &acceptor, serve_mux &mux) {
+
+  if (!acceptor.is_open()) {
+    return;
+  }
+
+  auto new_connection = std::make_shared<connection<stream_protocol::socket>>(
+      mux, tls_handshake_timeout_, read_timeout_,
+      io_service_pool_.get_io_service());
+
+  acceptor.async_accept(
+      new_connection->socket(), [this, &acceptor, &mux, new_connection](
+                                    const boost::system::error_code &e) {
+        if (!e) {
+          new_connection->start_read_deadline();
+          new_connection->start();
+        }
+        if (acceptor.is_open()) {
+          start_accept(acceptor, mux);
+        }
+      });
+}
+
+
 void server::stop() {
   for (auto &acceptor : acceptors_) {
     acceptor.close();
+  }
+  if (uds_acceptor_) {
+      uds_acceptor_->close();
   }
   io_service_pool_.stop();
 }
