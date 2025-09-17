@@ -26,6 +26,7 @@
 #define ASIO_HTTP2_CLIENT_H
 
 #include <nghttp2/asio_http2.h>
+#include <boost/date_time.hpp>
 
 namespace nghttp2 {
 

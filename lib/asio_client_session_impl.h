@@ -120,11 +120,11 @@ private:
   connect_cb connect_cb_;
   error_cb error_cb_;
 
-  boost::asio::deadline_timer deadline_;
+  boost::asio::system_timer deadline_;
   boost::posix_time::time_duration connect_timeout_;
   boost::posix_time::time_duration read_timeout_;
 
-  boost::asio::deadline_timer ping_;
+  boost::asio::system_timer ping_;
 
   nghttp2_session *session_;
 

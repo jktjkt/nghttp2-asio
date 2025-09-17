@@ -101,13 +101,15 @@ public:
   socket_type &socket() { return socket_; }
 
   void start_tls_handshake_deadline() {
-    deadline_.expires_from_now(tls_handshake_timeout_);
+    auto timeout_ms = std::chrono::milliseconds(tls_handshake_timeout_.total_milliseconds());
+    deadline_.expires_after(timeout_ms);
     deadline_.async_wait(
         std::bind(&connection::handle_deadline, this->shared_from_this()));
   }
 
   void start_read_deadline() {
-    deadline_.expires_from_now(read_timeout_);
+    auto timeout_ms = std::chrono::milliseconds(read_timeout_.total_milliseconds());
+    deadline_.expires_after(timeout_ms);
     deadline_.async_wait(
         std::bind(&connection::handle_deadline, this->shared_from_this()));
   }
@@ -117,10 +119,10 @@ public:
       return;
     }
 
-    if (deadline_.expires_at() <=
-        boost::asio::deadline_timer::traits_type::now()) {
+    if (deadline_.expiry() <=
+        std::chrono::system_clock::now()) {
       stop();
-      deadline_.expires_at(boost::posix_time::pos_infin);
+      deadline_.expires_at(std::chrono::system_clock::time_point::max());
       return;
     }
 
@@ -131,7 +133,8 @@ public:
   void do_read() {
     auto self = this->shared_from_this();
 
-    deadline_.expires_from_now(read_timeout_);
+    auto timeout_ms = std::chrono::milliseconds(read_timeout_.total_milliseconds());
+    deadline_.expires_after(timeout_ms);
 
     socket_.async_read_some(
         boost::asio::buffer(buffer_),
@@ -192,7 +195,8 @@ public:
 
     // Reset read deadline here, because normally client is sending
     // something, it does not expect timeout while doing it.
-    deadline_.expires_from_now(read_timeout_);
+    auto timeout_ms = std::chrono::milliseconds(read_timeout_.total_milliseconds());
+    deadline_.expires_after(timeout_ms);
 
     boost::asio::async_write(
         socket_, boost::asio::buffer(outbuf_, nwrite),
@@ -236,7 +240,7 @@ private:
 
   boost::array<uint8_t, 64_k> outbuf_;
 
-  boost::asio::deadline_timer deadline_;
+  boost::asio::system_timer deadline_;
   boost::posix_time::time_duration tls_handshake_timeout_;
   boost::posix_time::time_duration read_timeout_;
 

@@ -173,9 +173,15 @@ std::string http_date(time_t t) {
 char *http_date(char *res, time_t t) {
   struct tm tms;
 
+#if defined(_WIN32) || defined(_MSC_VER)
+  if (gmtime_s(&tms, &t) != 0) {
+    return res;
+  }
+#else
   if (gmtime_r(&t, &tms) == nullptr) {
     return res;
   }
+#endif
 
   auto p = res;
 
