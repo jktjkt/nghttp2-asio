@@ -57,8 +57,12 @@ target_link_libraries(nghttp2_asio
   ${LIBNGHTTP2_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
-  ws2_32 mswsock
 )
+
+if (WIN32)
+  target_link_libraries(nghttp2_asio ws2_32 mswsock)
+endif()
+
 set_target_properties(nghttp2_asio PROPERTIES
   VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION})
 
